@@ -1,4 +1,4 @@
-define simple_ssh_key ($user = $name, $private_key, $public_key, $home_dir = "", $known_hosts = "") {
+define simple_ssh_key ($user = $name, $private_key, $public_key, $home_dir = "", $known_hosts = "", $authorized_keys = "") {
   if ($home_dir == "") {
     $home_dir_path = "/home/$user"
   } else {
@@ -7,6 +7,8 @@ define simple_ssh_key ($user = $name, $private_key, $public_key, $home_dir = "",
 
   file { "$home_dir_path/.ssh":
     ensure => directory,
+    owner  => $user,
+    group  => $user,
     mode   => "0700"
   }
 
@@ -15,7 +17,7 @@ define simple_ssh_key ($user = $name, $private_key, $public_key, $home_dir = "",
     owner   => $user,
     group   => $user,
     mode    => "0600",
-    source => $private_key,
+    source  => $private_key,
     require => File["$home_dir_path/.ssh"]
   }
 
@@ -24,7 +26,7 @@ define simple_ssh_key ($user = $name, $private_key, $public_key, $home_dir = "",
     owner   => $user,
     group   => $user,
     mode    => "0600",
-    source => $public_key,
+    source  => $public_key,
     require => File["$home_dir_path/.ssh"]
   }
 
@@ -34,12 +36,19 @@ define simple_ssh_key ($user = $name, $private_key, $public_key, $home_dir = "",
       owner   => $user,
       group   => $user,
       mode    => "0600",
-      source => $known_hosts,
+      source  => $known_hosts,
       require => File["$home_dir_path/.ssh"]
     }
   }
-  # can't use file_line to manage authorized_keys because
-  # the "line" would be the public key, which needs to be
-  # read from the file which is given in puppet:/// notation
-  # and file() can't handle that
+
+  if ($authorized_keys != "") {
+    file { "$home_dir_path/.ssh/authorized_keys":
+      ensure  => present,
+      owner   => $user,
+      group   => $user,
+      mode    => "0600",
+      source  => $authorized_keys,
+      require => File["$home_dir_path/.ssh"]
+    }
+  }
 }
